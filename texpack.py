@@ -651,6 +651,10 @@ def main(*argv):
         log.warning('%d sheets', numsheets)
         digits = 0
 
+
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
+
     with Timer('save sheets'):
         for i, sheet in enumerate(sheets):
             if not sheet.sprites:
@@ -662,6 +666,7 @@ def main(*argv):
 
     ########################################################################
     ## Phase 4 - Output texture data; create index
+
 
             outname = '%s%0*d' % (args.prefix, digits, i)
             texname = outname + '.' + args.format

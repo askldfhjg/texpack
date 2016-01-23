@@ -125,8 +125,10 @@ class Sprite(Rect):
 
         self.name = kwargs.get('name')
         self.image = image
-        self.size = image.size
-        self.box = image.getbbox()
+        sw,sh = image.size
+        self.size = (sw,sh)
+        bx,by,bw,bh = image.getbbox()
+        self.box = (bx,by,bw,bh)
         self.rotated = False
         self.x, self.y = 0, 0
 
@@ -281,12 +283,12 @@ class Sheet(object):
                 'y': spr.y,
                 'offX': spr.box[0],
                 'offY': spr.box[1],
-                'w': spr.size[0],
-                'h': spr.size[1],
-                'sourceW': spr.box[2] - spr.box[0],
-                'sourceH': spr.box[3] - spr.box[1]
+                'w': spr.box[2] - spr.box[0],
+                'h': spr.box[3] - spr.box[1],
+                'sourceW': spr.size[0],
+                'sourceH': spr.size[1]
             }
-            dict['frames'][os.path.basename(spr.filename)] = obj
+            dict['frames'][os.path.basename(spr.filename).replace('.', '_')] = obj
         return dict
 
     def prepare(self, debug=None):
