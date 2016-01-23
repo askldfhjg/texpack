@@ -20,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 
 import math
 import os
+import json
 
 from PIL import Image
 from PIL import ImageChops
@@ -432,6 +433,7 @@ def build_arg_parser():
 
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Print more detailed messages.")
+    parser.add_argument('--output', '-o', help='textures save path')
 
     ########################################################################
 
@@ -672,7 +674,13 @@ def main(*argv):
             if sheet.coverage > 1.0:
                 log.warning('coverage > 1.0, overlapping sprites?')
 
-            texture.save(texname)
+            texture.save(os.path.join(args.output, texname))
+
+            dataname = outname + '.' + 'json'
+            data = sheet.prepare_data(texname)
+            file = open(os.path.join(args.output, dataname), 'w')
+            file.write(json.dumps(data))
+            file.close()
 
             if args.encrypt:
                 encrypt_data(texname, args.encrypt, args.key, args.key_hash, args.key_file)

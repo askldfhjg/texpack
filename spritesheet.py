@@ -6,6 +6,7 @@
 __all__ = ['Rect', 'Sprite', 'Sheet']
 
 import logging
+import os
 log = logging.getLogger(__name__)
 
 ################################################################################
@@ -124,6 +125,8 @@ class Sprite(Rect):
 
         self.name = kwargs.get('name')
         self.image = image
+        self.size = image.size
+        self.box = image.getbbox()
         self.rotated = False
         self.x, self.y = 0, 0
 
@@ -268,6 +271,24 @@ class Sheet(object):
 
         return remain
 
+    def prepare_data(self, filename):
+        dict = {}
+        dict['frames'] = {}
+        dict['file'] = filename
+        for spr in self.sprites:
+            obj = {
+                'x': spr.x,
+                'y': spr.y,
+                'offX': spr.box[0],
+                'offY': spr.box[1],
+                'w': spr.size[0],
+                'h': spr.size[1],
+                'sourceW': spr.box[2] - spr.box[0],
+                'sourceH': spr.box[3] - spr.box[1]
+            }
+            dict['frames'][os.path.basename(spr.filename)] = obj
+        return dict
+
     def prepare(self, debug=None):
         log.debug('\t%r', self.size)
 
@@ -298,7 +319,9 @@ class Sheet(object):
 
         for spr in self.sprites:
             log.debug('\t%r %r %r %r', (spr.x, spr.y, spr.w, spr.h), spr.image.size, spr.image.mode, spr.rotated)
-            texture.paste(spr.image, (spr.x, spr.y), spr.image)
+            img = spr.image.transform(self.size, Image.AFFINE, (1, 0, -spr.x, 0, 1, -spr.y), Image.BICUBIC)
+            # texture.paste(spr.image, (spr.x, spr.y), spr.image)
+            texture = Image.alpha_composite(texture, img)
 
         if debug:
             draw = ImageDraw.Draw(texture)
