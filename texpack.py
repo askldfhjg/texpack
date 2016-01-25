@@ -291,8 +291,10 @@ def pad_sprites(sprites, size):
             for spr in sprites:
                 w, h = spr.image.size
                 image = Image.new(spr.image.mode, (w+size, h+size), (0,0,0,0))
-                image.paste(spr.image, (0, 0), spr.image)
-                spr.image = image
+                # image.paste(spr.image, (0, 0), spr.image)
+                img = spr.image.transform((w + size, h + size), Image.AFFINE, (1, 0, 0, 0, 1, 0), Image.BICUBIC)
+                spr.image = Image.alpha_composite(image, img)
+                # spr.image = image
 
     return sprites
 
