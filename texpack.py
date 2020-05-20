@@ -665,9 +665,13 @@ def mainProcess(args, path, destName):
     if args.max_size:
         sheets, full = build_sprite_sheets(args, sprites, args.max_size, False)
         if len(sheets) == 1 and not full:
-            newsheets, newfull = build_sprite_sheets(args, sprites, args.max_size/2, True)
-            if newfull or len(newsheets) > 1:
+            sheets, full = build_sprite_sheets(args, sprites, args.max_size/2, True)
+            if full or len(sheets) > 1:
                 sheets, _ = build_sprite_sheets(args, sprites, args.max_size, False)
+            else:
+                sheets, full = build_sprite_sheets(args, sprites, args.max_size/4, True)
+                if full or len(sheets) > 1:
+                    sheets, _ = build_sprite_sheets(args, sprites, args.max_size/2, False)
     else:
         sheets, _ = build_sprite_sheets(args, sprites, args.max_size, False)
     ########################################################################
