@@ -477,6 +477,8 @@ def build_arg_parser():
                               help="Set minimum sheet dimensions.")
     layout_group.add_argument('--max-size', type=int, default=0, metavar='SIZE',
                               help="Set maximum sheet dimensions.")
+    layout_group.add_argument('--multipack', action='store_true', default=False,
+                              help="create multiple Data and Texture files if not all sprites could be packed into a single texture")
 
     ########################################################################
 
@@ -592,7 +594,6 @@ def build_sprite_sheets(args, sprites):
                 square = args.square,
                 layout = layout
             )
-
             sprites = sheet.add(sprites)
 
             if sheet.sprites:
@@ -639,6 +640,10 @@ def main(*argv):
         log.warn("Warning: --compress is not implemented")
 
     numsheets = len(sheets)
+
+    if numsheets > 1 and not args.multipack:
+        log.warn("Error: No space left to pack sprites")
+        return;
 
     if numsheets > 0:
         digits = int(math.floor(math.log10(numsheets))+1)
