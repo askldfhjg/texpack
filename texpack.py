@@ -203,9 +203,7 @@ def mask_sprites(sprites, color):
 def trim_sprites(sprites):
     with Timer('trim sprites'):
         for spr in sprites:
-            invert_im = ImageOps.invert(spr.image.convert('RGB'))
-            box = invert_im.getbbox()
-            spr.image = spr.image.crop(box)
+            spr.image = spr.image.crop(spr.box)
 
     return sprites
 

@@ -7,6 +7,7 @@ __all__ = ['Rect', 'Sprite', 'Sheet']
 
 import logging
 import os
+from PIL import ImageOps
 log = logging.getLogger(__name__)
 
 ################################################################################
@@ -127,8 +128,10 @@ class Sprite(Rect):
         self.image = image
         sw,sh = image.size
         self.size = (sw,sh)
-        bx,by,bw,bh = image.getbbox()
-        self.box = (bx,by,bw,bh)
+        invert_im = ImageOps.invert(image.convert('RGB'))
+        self.box  = invert_im.getbbox()
+        if self.box is None:
+            self.box = image.getbbox()
         self.rotated = False
         self.x, self.y = 0, 0
 
@@ -300,8 +303,13 @@ class Sheet(object):
                 'x': spr.x,
                 'y': spr.y,
                 'w': spr.size[0],
-                'h': spr.size[1]
+                'h': spr.size[1],
             }
+            if spr.box[0] != 0 or spr.box[1] != 0:
+                obj['offX'] = spr.box[0]
+                obj['offY'] = spr.box[1]
+                obj['sourceW'] = spr.box[2] - spr.box[0]
+                obj['sourceH'] = spr.box[3] - spr.box[1]
             ffff = os.path.basename(spr.filename).split(".")
             dict['frames'][ffff[0]] = obj
         return dict
