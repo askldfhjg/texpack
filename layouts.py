@@ -197,9 +197,6 @@ class StackLayout(ShelfLayout):
 
 import os
 
-if not os.path.isdir('maxdbg'):
-    os.makedirs('maxdbg')
-
 class MaxRectsLayout(Layout):
     """
     A layout that arranges rects by subdividing free space into overlapping
