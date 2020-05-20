@@ -273,7 +273,7 @@ class Sheet(object):
 
         return remain
 
-    def prepare_data(self, filename):
+    def prepare_data_old(self, filename):
         dict = {}
         dict['frames'] = {}
         dict['file'] = filename
@@ -289,6 +289,21 @@ class Sheet(object):
                 'sourceH': spr.size[1]
             }
             dict['frames'][os.path.basename(spr.filename).replace('.', '_')] = obj
+        return dict
+
+    def prepare_data(self, filename):
+        dict = {}
+        dict['frames'] = {}
+        dict['file'] = filename
+        for spr in self.sprites:
+            obj = {
+                'x': spr.x,
+                'y': spr.y,
+                'w': spr.size[0],
+                'h': spr.size[1]
+            }
+            ffff = os.path.basename(spr.filename).split(".")
+            dict['frames'][ffff[0]] = obj
         return dict
 
     def prepare(self, debug=None):

@@ -669,8 +669,10 @@ def main(*argv):
     ########################################################################
     ## Phase 4 - Output texture data; create index
 
-
-            outname = '%s%0*d' % (args.prefix, digits, i)
+            if numsheets == 1:
+                outname = args.prefix
+            else:
+                outname = '%s%0*d' % (args.prefix, digits, i)
             texname = outname + '.' + args.format
             idxname = outname + '.' + 'idx'
 
@@ -683,10 +685,12 @@ def main(*argv):
 
             texture.save(os.path.join(args.output, texname))
 
-            dataname = outname + '.' + 'json'
+            dataname = outname + '.' + 'st'
             data = sheet.prepare_data(texname)
             file = open(os.path.join(args.output, dataname), 'w')
-            file.write(json.dumps(data))
+            jsonStr = json.dumps(data)
+            jsonStr = jsonStr.replace(" ", "")
+            file.write(jsonStr)
             file.close()
 
             if args.encrypt:
