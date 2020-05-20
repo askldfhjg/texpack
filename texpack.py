@@ -21,13 +21,17 @@ logging.basicConfig(level=logging.INFO)
 import math
 import os
 import json
+import time
 
 from PIL import Image
 from PIL import ImageChops
 from PIL import ImageColor
+from PIL import ImageOps
 
 from layouts import get_layout
 from spritesheet import Sprite, Sheet
+from multiprocessing import Process
+from glob import glob
 
 ################################################################################
 
@@ -87,7 +91,6 @@ class Timer(object):
 ################################################################################
 
 def load_sprites(filenames):
-    from glob import glob
 
     r = []
 
@@ -200,7 +203,8 @@ def mask_sprites(sprites, color):
 def trim_sprites(sprites):
     with Timer('trim sprites'):
         for spr in sprites:
-            box = spr.image.getbbox()
+            invert_im = ImageOps.invert(spr.image.convert('RGB'))
+            box = invert_im.getbbox()
             spr.image = spr.image.crop(box)
 
     return sprites
@@ -421,10 +425,8 @@ def encrypt_data(filename, method, key=None, key_hash=None, key_file=None):
 def build_arg_parser():
     import argparse
 
-    parser = argparse.ArgumentParser(usage='%(prog)s prefix sprites... [options]')
+    parser = argparse.ArgumentParser(usage='%(prog)s sprites... [options]')
 
-    parser.add_argument('prefix',
-                        help="Prefix for output sheet textures")
     parser.add_argument('sprites', nargs='+',
                         help="Sprite images / folders / wildcards")
 
@@ -435,6 +437,10 @@ def build_arg_parser():
 
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Print more detailed messages.")
+
+    parser.add_argument('--filename', '-f',
+                        help="Filename for output sheet textures")
+
     parser.add_argument('--output', '-o', help='textures save path')
 
     ########################################################################
@@ -464,7 +470,7 @@ def build_arg_parser():
     ########################################################################
 
     layout_group = parser.add_argument_group('layout options')
-    layout_group.add_argument('--layout', type=str.lower, default='shelf', metavar='TYPE',
+    layout_group.add_argument('--layout', type=str.lower, default='max-rects', metavar='TYPE',
                               choices=['shelf','stack','max-rects','skyline'],
                               help="Select layout algorithm. (default: %(default)s)")
     layout_group.add_argument('--rotate', action='store_true', default=False,
@@ -530,12 +536,15 @@ def build_arg_parser():
 
 ################################################################################
 
-def load_and_process_sprites(args):
+def load_and_process_sprites(args, path, destName):
 
-    sprites = load_sprites(args.sprites)
+    sprites = load_sprites(path)
 
     if not sprites:
         raise ValueError('No sprites found.')
+    
+    if not destName:
+        raise ValueError('No destName found.')
 
     if args.mask:
         ## Mask sprites against background color
@@ -556,7 +565,7 @@ def load_and_process_sprites(args):
             sheet = Sheet(npot=True, layout=get_layout('stack'))
             sheet.add(aliased)
             texture = sheet.prepare(args.debug)
-            texname = '%salias.png' % args.prefix
+            texname = '%salias.png' % destName
             texture.save(texname)
 
     if args.extrude:
@@ -615,11 +624,34 @@ def main(*argv):
 
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    
+    ticks = time.time()
+    r = []
+    pList = []
+    for fn in args.sprites:
+        for f in glob(fn):
+            f = os.path.abspath(f)
+            if os.path.isdir(f):
+                pp = Process(target=mainProcess, args=(args, [f], os.path.basename(f),))
+                pp.start()
+                pList.append(pp)
+            else:
+                r.append(f)
+    if len(r) > 0:
+        pp = Process(target=mainProcess, args=(args, r, args.filename,))
+        pp.start()
+        pList.append(pp)
 
+    for ppp in pList:
+        ppp.join()
+    vv = time.time() - ticks
+    print(vv)
+
+def mainProcess(args, path, destName):
     ########################################################################
     ## Phase 1 - Load and process individual sprites
 
-    sprites = load_and_process_sprites(args)
+    sprites = load_and_process_sprites(args, path, destName)
 
     ########################################################################
     ## Phase 2 - Arrange sprites in sheets
@@ -641,18 +673,14 @@ def main(*argv):
 
     numsheets = len(sheets)
 
-    if numsheets > 1 and not args.multipack:
-        log.warn("Error: No space left to pack sprites")
-        return;
+    # if numsheets > 1 and not args.multipack:
+    #     log.warn("Error: No space left to pack sprites " + path[0])
+    #     return;
 
     if numsheets > 0:
         digits = int(math.floor(math.log10(numsheets))+1)
 
         log.info('%d sheet%s', numsheets, ':' if numsheets == 1 else 's:')
-
-        path = os.path.dirname(args.prefix)
-        if path and not os.path.isdir(path):
-            os.makedirs(path)
 
     else:
         log.warning('%d sheets', numsheets)
@@ -675,9 +703,9 @@ def main(*argv):
     ## Phase 4 - Output texture data; create index
 
             if numsheets == 1:
-                outname = args.prefix
+                outname = destName
             else:
-                outname = '%s%0*d' % (args.prefix, digits, i)
+                outname = '%s%0*d' % (destName, digits, i)
             texname = outname + '.' + args.format
             idxname = outname + '.' + 'idx'
 
