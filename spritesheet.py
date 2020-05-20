@@ -307,7 +307,7 @@ class Sheet(object):
                 obj['offY'] = spr.box[1]
                 obj['sourceW'] = spr.box[2] - spr.box[0]
                 obj['sourceH'] = spr.box[3] - spr.box[1]
-            ffff = os.path.basename(spr.filename).split(".")
+            ffff = os.path.basename(spr.filename).rsplit(".", 1)
             dict['frames'][ffff[0]] = obj
         return dict
 
