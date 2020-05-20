@@ -128,10 +128,7 @@ class Sprite(Rect):
         self.image = image
         sw,sh = image.size
         self.size = (sw,sh)
-        invert_im = ImageOps.invert(image.convert('RGB'))
-        self.box  = invert_im.getbbox()
-        if self.box is None:
-            self.box = image.getbbox()
+        self.box = image.getbbox()
         self.rotated = False
         self.x, self.y = 0, 0
 
@@ -338,7 +335,7 @@ class Sheet(object):
         log.debug('\t%r', self.size)
 
         ## redo layout with final size
-        self.do_layout(self.sprites)
+        #self.do_layout(self.sprites)
 
         texture = Image.new('RGBA', self.size) # args.color_depth
 

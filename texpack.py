@@ -203,7 +203,13 @@ def mask_sprites(sprites, color):
 def trim_sprites(sprites):
     with Timer('trim sprites'):
         for spr in sprites:
-            spr.image = spr.image.crop(spr.box)
+            invert_im = ImageOps.invert(spr.image.convert('RGB'))
+            spr.box  = invert_im.getbbox()
+            if spr.box is None:
+                spr.box = spr.image.getbbox()
+            else:
+                spr.image = spr.image.crop(spr.box)
+                spr.size = spr.image.size
 
     return sprites
 
@@ -581,7 +587,7 @@ def load_and_process_sprites(args, path, destName):
 
 ################################################################################
 
-def build_sprite_sheets(args, sprites):
+def build_sprite_sheets(args, sprites, maxSize, isTest):
 
     sheets = []
 
@@ -595,7 +601,7 @@ def build_sprite_sheets(args, sprites):
 
             sheet = Sheet(
                 min_size = args.min_size,
-                max_size = args.max_size,
+                max_size = maxSize,
                 rotate = args.rotate,
                 npot = args.npot,
                 square = args.square,
@@ -605,13 +611,15 @@ def build_sprite_sheets(args, sprites):
 
             if sheet.sprites:
                 sheets.append(sheet)
-
+    isFull = False
     if sprites:
-        log.warn("Could not place:")
-        for spr in sprites:
-            log.warn("\t%s", spr.name)
+        if not isTest:
+            log.warn("Could not place:")
+            for spr in sprites:
+                log.warn("\t%s", spr.name)
+        isFull = True
 
-    return sheets
+    return sheets, isFull
 
 ################################################################################
 
@@ -653,12 +661,17 @@ def mainProcess(args, path, destName):
 
     ########################################################################
     ## Phase 2 - Arrange sprites in sheets
-
-    sheets = build_sprite_sheets(args, sprites)
-
+    sheets = []
+    if args.max_size:
+        sheets, full = build_sprite_sheets(args, sprites, args.max_size, False)
+        if len(sheets) == 1 and not full:
+            newsheets, newfull = build_sprite_sheets(args, sprites, args.max_size/2, True)
+            if newfull or len(newsheets) > 1:
+                sheets, _ = build_sprite_sheets(args, sprites, args.max_size, False)
+    else:
+        sheets, _ = build_sprite_sheets(args, sprites, args.max_size, False)
     ########################################################################
     ## Phase 3 - Scale, quantize, and compress textures
-
     if args.scale:
         ## do main process twice:
         ##   first with filename suffix '@2x',
@@ -678,7 +691,7 @@ def mainProcess(args, path, destName):
     if numsheets > 0:
         digits = int(math.floor(math.log10(numsheets))+1)
 
-        log.info('%d sheet%s', numsheets, ':' if numsheets == 1 else 's:')
+        #log.info('%d sheet%s', numsheets, ':' if numsheets == 1 else 's:')
 
     else:
         log.warning('%d sheets', numsheets)
