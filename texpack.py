@@ -22,6 +22,7 @@ import math
 import os
 import json
 import time
+import hashlib
 
 from PIL import Image
 from PIL import ImageChops
@@ -93,7 +94,7 @@ class Timer(object):
 def load_sprites(filenames):
 
     r = []
-
+    md5s = []
     with Timer('load sprites'):
         for fn in filenames:
             for f in glob(fn):
@@ -102,19 +103,26 @@ def load_sprites(filenames):
                     for root, _, files in os.walk(f):
                         for ff in files:
                             try:
-                                r.append(Sprite(os.path.join(root, ff)))
+                                sp = Sprite(os.path.join(root, ff))
+                                r.append(sp)
+                                md5s.append("%s%s" % (sp.md5, sp.name))
                             except IOError:
                                 ## Not an image file?
                                 pass
 
                 else:
                     try:
-                        r.append(Sprite(f))
+                        sp = Sprite(f)
+                        r.append(sp)
+                        md5s.append("%s%s" % (sp.md5, sp.name))
                     except IOError:
                         ## Not an image file?
                         pass
-
-    return r
+    md5s.sort();
+    strr = ''.join(md5s)
+    m = hashlib.md5()
+    m.update(strr)
+    return r, m.hexdigest()
 
 ################################################################################
 
@@ -524,7 +532,7 @@ def build_arg_parser():
 
 def load_and_process_sprites(args, path, destName):
 
-    sprites = load_sprites(path)
+    sprites, md5Code = load_sprites(path)
 
     if not sprites:
         raise ValueError('No sprites found.')
@@ -557,7 +565,7 @@ def load_and_process_sprites(args, path, destName):
     if args.sort:
         sprites = sort_sprites(sprites, args.sort, args.rotate)
 
-    return sprites
+    return sprites, md5Code
 
 ################################################################################
 
@@ -625,13 +633,26 @@ def main(*argv):
     for ppp in pList:
         ppp.join()
     vv = time.time() - ticks
-    print(vv)
+    log.info(vv)
 
 def mainProcess(args, path, destName):
     ########################################################################
     ## Phase 1 - Load and process individual sprites
+ 
+    sprites, md5Code = load_and_process_sprites(args, path, destName)
 
-    sprites = load_and_process_sprites(args, path, destName)
+    stPath = os.path.join(args.output, destName + '.' + 'st')
+    if os.path.exists(stPath):
+        file = open(stPath, 'r')
+        lines = file.read()
+        text = json.loads(lines)
+        file.close()
+        oldMd5 = ""
+        if "md5" in text:
+            oldMd5 = text["md5"]
+        if oldMd5 == md5Code:
+            log.info("\t%s not change", destName + '.' + args.format)
+            return
 
     ########################################################################
     ## Phase 2 - Arrange sprites in sheets
@@ -662,9 +683,9 @@ def mainProcess(args, path, destName):
 
     numsheets = len(sheets)
 
-    # if numsheets > 1 and not args.multipack:
-    #     log.warn("Error: No space left to pack sprites " + path[0])
-    #     return;
+    if numsheets > 1 and not args.multipack:
+        log.warn("Error: No space left to pack sprites " + path[0])
+        return;
 
     if numsheets > 0:
         digits = int(math.floor(math.log10(numsheets))+1)
@@ -709,6 +730,7 @@ def mainProcess(args, path, destName):
 
             dataname = outname + '.' + 'st'
             data = sheet.prepare_data(texname)
+            data["md5"] = md5Code
             file = open(os.path.join(args.output, dataname), 'w')
             jsonStr = json.dumps(data)
             jsonStr = jsonStr.replace(" ", "")
