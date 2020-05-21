@@ -225,7 +225,7 @@ def alias_sprites(sprites):
     ret = []
     dict1 = {}
     for i, spr1 in enumerate(sprites):
-        if dict1.has_key(spr1.md5):
+        if spr1.md5 in dict1:
             li = dict1[spr1.md5]
             li.append(i)
             dict1[spr1.md5] = li
