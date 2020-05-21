@@ -7,6 +7,7 @@ __all__ = ['Rect', 'Sprite', 'Sheet']
 
 import logging
 import os
+import hashlib
 from PIL import ImageOps
 log = logging.getLogger(__name__)
 
@@ -131,6 +132,10 @@ class Sprite(Rect):
         self.box = image.getbbox()
         self.rotated = False
         self.x, self.y = 0, 0
+        data = open(self.filename, 'rb').read()
+        m = hashlib.md5()
+        m.update(data)
+        self.md5 = m.hexdigest()
 
     @property
     def image(self):
@@ -309,6 +314,9 @@ class Sheet(object):
                 obj['sourceH'] = spr.box[3] - spr.box[1]
             ffff = os.path.basename(spr.filename).rsplit(".", 1)
             dict['frames'][ffff[0]] = obj
+            for i, sppp in enumerate(spr.alias):
+                fff = os.path.basename(sppp.filename).rsplit(".", 1)
+                dict['frames'][fff[0]] = obj
         return dict
 
     def prepare(self, debug=None):
@@ -354,8 +362,9 @@ class Sheet(object):
                 draw.rectangle((x0, y0, x1, y1), None, color)
                 draw.text((x0+2, y0+2), spr.name, color)
                 if hasattr(spr, 'alias'):
-                    y0 += draw.textsize(spr.alias.name)[1]
-                    draw.text((x0+2, y0+2), spr.alias.name, color)
+                    for i, sppp in enumerate(spr.alias):
+                        y0 += draw.textsize(sppp.name)[1]
+                        draw.text((x0+2, y0+2), sppp.name, color)
 
             self.layout.debug_draw(texture, draw)
 

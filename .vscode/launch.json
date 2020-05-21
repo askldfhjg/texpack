@@ -12,12 +12,13 @@
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "args": [
-                "/Users/hoodinn/dev/code/gmys_client/laya/assets/_gmys_login",
+                "/Users/hoodinn/dev/code/gmys_client/laya/assets/_gmys_fate",
                 "-o=yyy",
                 "--npot",
                 "--max-size=2048",
                 "--trim",
-                "--verbose"
+                "--verbose",
+                "--debug"
             ]
         }
     ]

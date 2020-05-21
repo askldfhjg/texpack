@@ -221,44 +221,28 @@ def hash_sprites(sprites):
 
 ################################################################################
 
-def alias_sprites(sprites, tolerance=0):
-    aliased = []
-
-    with Timer('alias sprites'):
-        if tolerance > 0:
-            def is_alias(spr1, spr2):
-                if spr1.image.size != spr2.image.size:
-                    return False
-
-                area = spr1.image.size[0] * spr1.image.size[1]
-                diff = ImageChops.difference(spr1.image, spr2.image)
-                hist = diff.histogram()
-                total = sum(v*(i%256)**2 for i,v in enumerate(hist))
-                rms = math.sqrt(total/area/65536.0)
-                return rms <= tolerance
-
+def alias_sprites(sprites):
+    ret = []
+    dict1 = {}
+    for i, spr1 in enumerate(sprites):
+        if dict1.has_key(spr1.md5):
+            li = dict1[spr1.md5]
+            li.append(i)
+            dict1[spr1.md5] = li
         else:
-            def is_alias(spr1, spr2):
-                if spr1.image.size != spr2.image.size:
-                    return False
-                diff = ImageChops.difference(spr1.image, spr2.image)
-                for mn, mx in diff.getextrema():
-                    if (mn > 0) or (mx > 0):
-                        return False
-                return True
-
-        for i, spr1 in enumerate(sprites):
-            for j in reversed(range(len(sprites))):
-                if j <= i:
-                    break
-                spr2 = sprites[j]
-
-                if is_alias(spr1, spr2):
-                    sprites.pop(j)
-                    spr2.alias = spr1
-                    aliased.append(spr2)
-
-    return sprites, aliased
+            dict1[spr1.md5] = [i]
+    for key in dict1:
+        li = dict1[key]
+        start = sprites[li[0]]
+        start.alias = []
+        if len(li) > 1:
+            for j in range(len(li)):
+                if j == 0:
+                    continue
+                sp = sprites[li[j]]
+                start.alias.append(sp)
+        ret.append(start)
+    return ret
 
 ################################################################################
 
@@ -456,9 +440,6 @@ def build_arg_parser():
                               "If %(metavar)s is omitted, defaults to `%(const)s'.")
     sprite_group.add_argument('--trim', action='store_true', default=False,
                               help="Trim sprites to visible area.")
-    sprite_group.add_argument('--alias', type=float, nargs='?', const=0.0, metavar='TOLERANCE',
-                              help="Find and remove duplicate sprites. "
-                              "If %(metavar)s is omitted, defaults to %(const)s.")
     sprite_group.add_argument('--extrude', type=int, default=0, nargs='?', const=1, metavar='SIZE',
                               help="Extrude sprite edges %(metavar)s pixels to avoid color bleed. "
                               "If %(metavar)s is omitted, defaults to `%(const)s'.")
@@ -562,16 +543,8 @@ def load_and_process_sprites(args, path, destName):
         ## Generate hashes of trimmed sprites
         sprites = hash_sprites(sprites)
 
-    if args.alias is not None:
-        ## Find and remove duplicate sprites
-        sprites, aliased = alias_sprites(sprites, args.alias)
-
-        if aliased:
-            sheet = Sheet(npot=True, layout=get_layout('stack'))
-            sheet.add(aliased)
-            texture = sheet.prepare(args.debug)
-            texname = '%salias.png' % destName
-            texture.save(texname)
+    ## Find and remove duplicate sprites
+    sprites = alias_sprites(sprites)
 
     if args.extrude:
         ## Extrude sprite edges to avoid color bleed
