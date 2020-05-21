@@ -123,7 +123,7 @@ def load_sprites(filenames, args):
     md5s.append(strStr)
     strr = ''.join(md5s)
     m = hashlib.md5()
-    m.update(strr)
+    m.update(strr.encode("utf-8"))
     return r, m.hexdigest()
 
 ################################################################################
