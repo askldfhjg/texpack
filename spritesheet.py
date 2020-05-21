@@ -296,10 +296,13 @@ class Sheet(object):
             dict['frames'][os.path.basename(spr.filename).replace('.', '_')] = obj
         return dict
 
-    def prepare_data(self, filename):
-        dict = {}
-        dict['frames'] = {}
-        dict['file'] = filename
+    def prepare_data(self, dict, index, filename, callCount):
+        if "frames" not in dict:
+            dict['frames'] = {}
+            dict['file'] = []
+        fileList = dict['file']
+        fileList.append(filename)
+        dict['file'] = fileList
         for spr in self.sprites:
             obj = {
                 'x': spr.x,
@@ -307,6 +310,8 @@ class Sheet(object):
                 'w': spr.size[0],
                 'h': spr.size[1],
             }
+            if callCount > 1:
+                obj['index'] = index
             if spr.box[0] != 0 or spr.box[1] != 0:
                 obj['offX'] = spr.box[0]
                 obj['offY'] = spr.box[1]

@@ -91,7 +91,7 @@ class Timer(object):
 
 ################################################################################
 
-def load_sprites(filenames):
+def load_sprites(filenames, args):
 
     r = []
     md5s = []
@@ -118,7 +118,9 @@ def load_sprites(filenames):
                     except IOError:
                         ## Not an image file?
                         pass
+    strStr = "%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r%r"%(args.color_depth, args.compress, args.dither, args.encrypt, args.extrude, args.filename, args.format, args.index, args.key, args.key_file, args.key_hash, args.layout, args.mask, args.max_size, args.min_size, args.multipack, args.npot, args.output, args.pad, args.palette_depth, args.palette_type, args.quantize, args.rotate, args.scale, args.sort, args.square, args.trim)
     md5s.sort();
+    md5s.append(strStr)
     strr = ''.join(md5s)
     m = hashlib.md5()
     m.update(strr)
@@ -532,7 +534,7 @@ def build_arg_parser():
 
 def load_and_process_sprites(args, path, destName):
 
-    sprites, md5Code = load_sprites(path)
+    sprites, md5Code = load_sprites(path, args)
 
     if not sprites:
         raise ValueError('No sprites found.')
@@ -701,6 +703,7 @@ def mainProcess(args, path, destName):
         os.makedirs(args.output)
 
     with Timer('save sheets'):
+        data = {}
         for i, sheet in enumerate(sheets):
             if not sheet.sprites:
                 continue
@@ -727,19 +730,19 @@ def mainProcess(args, path, destName):
                 log.warning('coverage > 1.0, overlapping sprites?')
 
             texture.save(os.path.join(args.output, texname))
-
-            dataname = outname + '.' + 'st'
-            data = sheet.prepare_data(texname)
-            data["md5"] = md5Code
-            file = open(os.path.join(args.output, dataname), 'w')
-            jsonStr = json.dumps(data)
-            jsonStr = jsonStr.replace(" ", "")
-            file.write(jsonStr)
-            file.close()
+            
+            data = sheet.prepare_data(data, i, texname, len(sheets))
 
             if args.encrypt:
                 encrypt_data(texname, args.encrypt, args.key, args.key_hash, args.key_file)
                 encrypt_data(idxname, args.encrypt, args.key, args.key_hash, args.key_file)
+
+        data["md5"] = md5Code
+        file = open(os.path.join(args.output, destName + '.' + 'st'), 'w')
+        jsonStr = json.dumps(data)
+        jsonStr = jsonStr.replace(" ", "")
+        file.write(jsonStr)
+        file.close()
 
 ################################################################################
 
