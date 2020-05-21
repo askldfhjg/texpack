@@ -340,7 +340,7 @@ class Sheet(object):
         texture = Image.new('RGBA', self.size) # args.color_depth
 
         for spr in self.sprites:
-            log.debug('\t%r %r %r %r', (spr.x, spr.y, spr.w, spr.h), spr.image.size, spr.image.mode, spr.rotated)
+            log.debug('\t%r %r %r %r %r %r', (spr.x, spr.y, spr.w, spr.h), spr.image.size, spr.image.mode, spr.rotated, spr.box, spr.name)
             img = spr.image.transform(self.size, Image.AFFINE, (1, 0, -spr.x, 0, 1, -spr.y), Image.BICUBIC)
             # texture.paste(spr.image, (spr.x, spr.y), spr.image)
             texture = Image.alpha_composite(texture, img)
